@@ -52,7 +52,8 @@ int main(void)
     auto dielectric2 = make_shared<Dielectric>(0.1);
 
     // Image Name
-    img_name = "dinoHigh_wBvh.ppm";
+    img_name = "img.ppm";
+    //img_name = "dinoHigh_wBvh.ppm";
     //img_name = "dinoHigh_woBvh.ppm";
 
     //img_name = "pyramid_woBvh.ppm";
@@ -135,7 +136,7 @@ int main(void)
 
     // Image
 	auto aspect_ratio = 16.0 / 9.0;
-	int image_width = 1280;
+	int image_width = 100;
     int image_height = static_cast<int>(image_width / aspect_ratio);
 	int samples_per_pixel = 3;    
 	const int max_depth = 5;
