@@ -1,6 +1,0 @@
-======================================Opening file ../obj/dino.obj======================================
-=================================================================================================
-
-BVH Construction[Total Time: 	3.027071 (ms), 	Avg Time: 	3.027071 (ms), 	Count: 	1]
-Rendering WITHOUT BVH[Total Time: 	112.947071 (ms), 	Avg Time: 	112.947071 (ms), 	Count: 	1]
-(Output File dino_woBvh.ppm) Picture Size 56 (h) x 100 (w): Total Pixel 5600 Sample: 1 Depth: 5
