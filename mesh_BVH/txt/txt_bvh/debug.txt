@@ -1,0 +1,6 @@
+======================================Opening file ../obj/dino.obj======================================
+=================================================================================================
+
+BVH Construction[Total Time: 	5.294474 (ms), 	Avg Time: 	5.294474 (ms), 	Count: 	1]
+Rendering WITH BVH[Total Time: 	3.045617 (s), 	Avg Time: 	3.045617 (s), 	Count: 	1]
+(Output File img.ppm) Picture Size 56 (h) x 100 (w): Total Pixel 5600 Sample: 3 Depth: 5
