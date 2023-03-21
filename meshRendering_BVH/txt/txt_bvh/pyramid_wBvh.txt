@@ -1,0 +1,6 @@
+======================================Opening file ../obj/pyramid.obj======================================
+=================================================================================================
+
+BVH Construction[Total Time: 	7.866000 (us), 	Avg Time: 	7.866000 (us), 	Count: 	1]
+Rendering WITH BVH[Total Time: 	8.424754 (ms), 	Avg Time: 	8.424754 (ms), 	Count: 	1]
+(Output File pyramid_wBvh.ppm) Picture Size 56 (h) x 100 (w): Total Pixel 5600 Sample: 1 Depth: 5
