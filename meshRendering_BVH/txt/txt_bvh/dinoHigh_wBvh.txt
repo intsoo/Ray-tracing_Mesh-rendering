@@ -1,6 +1,0 @@
-======================================Opening file ../obj/dino.obj======================================
-=================================================================================================
-
-BVH Construction[Total Time: 	3.418973 (ms), 	Avg Time: 	3.418973 (ms), 	Count: 	1]
-Rendering WITH BVH[Total Time: 	259.688221 (s), 	Avg Time: 	259.688221 (s), 	Count: 	1]
-(Output File dinoHigh_wBvh.ppm) Picture Size 720 (h) x 1280 (w): Total Pixel 921600 Sample: 3 Depth: 5
