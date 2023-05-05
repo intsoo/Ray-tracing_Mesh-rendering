@@ -1,32 +1,13 @@
-/**********************************************************************************
- * <Things to Complete>
+/*
+ * ===================================================
  *
- * ~ 2023/02/02
- * 1. Load mesh (object) file: Start with a simple pyramid mesh!
- * 2. Implement triangle-ray intersection test: Debug first
- * 3. Implement mesh-ray intersection test: Debug first
- //////////////////////////////////////////////////////////////////////////////////
- * ~ 2023/02/??
- * 4. Render multiple meshes (Create mesh array or world)
- * 5. Create BVH
- **********************************************************************************/
-
-
-// 1. 메시 오브젝트 파일 로딩
-
-// 1.1. setter (setVertices, setFaces) 멤버함수 구현 (O)
-// => AABB, Material 초기화 부분 제외하고 구현 완료
-
-// 1.2. getter (getVertices, getFaces) 멤버함수 구현 (O)
-
-// 1.3. getter함수 이용해서 mesh의 vertices, faces가 제대로 초기화되었는지 디버깅
-// => printMesh() 함수를 구현하여 제대로 로딩이 됨을 확인함
-
-// **** glm 함수 (normalize, cross) 직접 구현하기
-// => utility.h에서 이미 구현한, Vec3 연산을 수행하는 inline 함수 unit_vector와 cross를 사용함
-
-
-
+ *       Filename:  main.cu
+ *    Description:  Ray Tracing In One Weekend (RTIOW): ~BVH 
+ *        Created:  2022/07/13
+ *  Last Modified: 2023/05/05
+ * 
+ * ===================================================
+ */
 
 // Preprocessors
 #pragma once
@@ -45,6 +26,7 @@
 
 #define POLYGON 3
 #define DIMENSION 3
+#define NV_IN_FILE false
 
 using namespace std;
 
@@ -101,6 +83,7 @@ public:
 	Vec3 getVertexPos(int face, int v) const;
     Vec3 getVertexNorm(int face, int v) const;
     Vec3 getPointNorm(int face, double u, double v) const;
+    Vec3 getTriNorm(int face) const;  // 230504: 오브젝트 파일 안에 VN이 제공되지 않는 경우, 삼각형마다 법선 벡터를 직접 구해야 함
 
     bool hit(const Ray& ray, double min_t, HitRecord& rec);
 
@@ -133,7 +116,7 @@ void printMesh(string filename, Mesh& mesh) {
     vector<Vertex> m_vertices = mesh.getVertices();
     vector<Face> m_faces = mesh.getFaces();
 
-    cout << "======================================" << "Printing Mesh Information " << filename << "======================================" << endl;
+    // cout << "======================================" << "Printing Mesh Information " << filename << "======================================" << endl;
 
     // Vertices
     cout << "<Vertex Positions>" << endl;
@@ -167,7 +150,7 @@ void printMesh(string filename, Mesh& mesh) {
         }
         cout << endl;
     }    
-    cout << "=================================================================================================" << endl << endl;
+    // cout << "=================================================================================================" << endl << endl;
 }
 
 //////////수정해라///////////
@@ -282,10 +265,23 @@ Vec3 Mesh::getPointNorm(int face, double u, double v) const
 	const Vec3 n_v2 = getVertexNorm(face, 2);
 
 	const Vec3 normal_vector = (1.0 - u - v) * n_v0 + u * n_v1 + v * n_v2;  // interpolation of the three vertex normals
-
 	return unit_vector(normal_vector);
 }
 
+// Compute normal vector of an arbitrary point inside the face using interpolation
+Vec3 Mesh::getTriNorm(int face) const
+{
+    const Vec3& v0 = getVertexPos(face, 0);
+    const Vec3& v1 = getVertexPos(face, 1);
+    const Vec3& v2 = getVertexPos(face, 2);
+    
+    Vec3 e1 = v1- v0;  // v0v1
+    Vec3 e2 = v2- v0;  // v0v2
+    Vec3 norm = cross(e1, e2); // this is the triangle's normal
+    norm = unit_vector(norm);
+
+    return norm;
+}
 
 // loadObjFile: Load a mesh (.obj) file
 bool loadObjFile(string filename, Mesh& mesh) 
@@ -303,6 +299,9 @@ bool loadObjFile(string filename, Mesh& mesh)
 
 bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces) 
 {
+
+    int v_count = 0, f_count = 0;  // Count the number of elements individually
+
     // Open the object file
     // ifstream file(filename);
     ifstream file;
@@ -311,11 +310,11 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
     if(file.fail())  // If it fails to read the file (== !file.is_open())
     {  
         // printf("Cannot open the object file.\n");
-        cout << "======================================" << "Cannot open the object file " << filename << "======================================" << endl;
+        // cout << "======================================" << "Cannot open the object file " << filename << "======================================" << endl;
         return false;
     }
 
-    cout << "======================================" << "Opening file " << filename << "======================================" << endl;
+    // cout << "======================================" << "Opening file " << filename << "======================================" << endl;
 
     // raw data
     vector<Vec3> raw_vertices;          
@@ -339,11 +338,13 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
         line_type = line.substr(0, pos);  // substring before space
         line_rest = line.substr(pos+1, line.length());  // substring after space
 
-        cout << line_type << " ";
+        // cout << line_type << " ";
         
         // 1) Vertex line
         if(line_type == "v")  // v x y z
         { 
+            v_count++;
+
             double e[DIMENSION];  // x y z
             
             for(int i=0; i<DIMENSION; i++) 
@@ -353,7 +354,7 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
                 e[i] = stof(line_rest.substr(cur_pos, len));
                 cur_pos = pos + 1;  // Move on to the next element
 
-                cout << e[i] << " ";  // debugging
+                // cout << e[i] << " ";  // debugging
             }
             raw_vertices.emplace_back(e[0], e[1], e[2]);  // add the current vertex data to the collection
         }
@@ -368,12 +369,14 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
                 e[i] = stof(line_rest.substr(cur_pos, len));
                 cur_pos = pos + 1;  // Move on to the next element
 
-                cout << e[i] << " ";  // debugging
+                // cout << e[i] << " ";  // debugging
             }
             raw_normals.emplace_back(e[0], e[1], e[2]);  // add the current vertex data to the collection
         }
         else if(line_type == "f")  // f v1 v2 v3 vn1 vn2 vn3
         {
+            f_count++;
+
             bool has_only_vertices = false;
         
             int v_e[POLYGON];
@@ -396,7 +399,7 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
 
                 if(has_only_vertices) 
                 {
-                    cout << v_e[i] << " ";  // debugging
+                    // cout << v_e[i] << " ";  // debugging
                     continue;
                 }
 
@@ -410,7 +413,7 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
                 n_e[i] = stoi(line_rest.substr(cur_pos, len));
                 cur_pos = pos + 1;
 
-                cout << v_e[i] << "//" << n_e[i] << " ";  // debugging
+                // cout << v_e[i] << "//" << n_e[i] << " ";  // debugging
                
             }
 
@@ -433,8 +436,11 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
                 cur_pos = pos + 1;  // Move on to the next element
             }
 */
-    cout << endl;
+    // cout << endl;
     }
+
+    // cout << "# of Vertices: " << v_count << " # of Faces: " << f_count << endl;
+    
 
     // Close the file
     file.close();
@@ -505,7 +511,7 @@ bool loadObjFile(string filename, vector<Vertex>& vertices, vector<Face>& faces)
 		faces.emplace_back(cur_v_idx, cur_n_idx);  // Add new face to the vector
 	}
 
-    cout << "=================================================================================================" << endl << endl;
+    // cout << "=================================================================================================" << endl << endl;
     
     return true;  // successful file loading
 }
@@ -522,7 +528,8 @@ bool Mesh::hit(const Ray& ray, double min_t, HitRecord& rec)
 */
 	bool is_hit = false;
 
-	rec.t = std::numeric_limits<double>::max();
+	// rec.t = std::numeric_limits<double>::max();
+	rec.t = std::numeric_limits<double>::infinity();
 
 	// Iterate over all triangles in the mesh
     int f_num = getNumFaces();
@@ -537,12 +544,12 @@ bool Mesh::hit(const Ray& ray, double min_t, HitRecord& rec)
 		// Output barycentric coordinates of the intersection point
 		Vec3 bary;
 
-//        cout << "Face[" << f << "]" << endl;
+        // cout << "Face[" << f << "]" << endl;
 
 		// Intersection test
 		if (testRayTriangleHit(ray, &t_temp, bary, v0, v1, v2))  // Check if ray intersects the triangle
 		{
-//            cout << "  t: " << t_temp << ", p: (" << ray.orig+t_temp*ray.dir << ")" << endl;  // debugging
+            // cout << "  t: " << t_temp << ", p: (" << ray.orig+t_temp*ray.dir << ")" << endl;  // debugging
 
             if(t_temp >= min_t && t_temp < rec.t)  // Update hit record only if hit earlier than the recorded one
             {
@@ -551,16 +558,25 @@ bool Mesh::hit(const Ray& ray, double min_t, HitRecord& rec)
 
                 bary = getBarycentric(rec.p, v0, v1, v2);
 
-                rec.normal = getPointNorm(f, bary.x(), bary.y());  // normal at the intersection point
+                if(NV_IN_FILE)  
+                { 
+                    rec.normal = getPointNorm(f, bary.x(), bary.y());  // normal at the intersection point
+                }
+                else
+                {
+                    rec.normal = getTriNorm(f);
+                }
+
+                // rec.normal = getPointNorm(f, bary.x(), bary.y());  // normal at the intersection point
                 rec.is_front_face = dot(ray.direction(), rec.normal) < 0;
                 rec.mat_ptr = m_material;
             
-//                cout << "  *Update Hit Record* t: " << rec.t << ", p: (" << rec.p << ")" << endl;  // debugging
+                // cout << "  *Update Hit Record* t: " << rec.t << ", p: (" << rec.p << ")" << endl;  // debugging
 
                 is_hit = true;
             }
 		}
-//        cout << endl;
+        // cout << endl;
 	}
     return is_hit;
 }
@@ -579,23 +595,27 @@ bool testRayTriangleHit(const Ray& ray, double *t, Vec3& bary, const Vec3& v0, c
     // 1. Check whether the ray is parallel to the plane
     // Calculate determinant
     Vec3 pvec = cross(ray.dir, e2);
-    double det = dot(e1, pvec);
+    double det = dot(pvec, e1);
 
-    if (det <= 0.0001) return false;  // If the determinant is near zero, ray // plane
+    if (det <= 0.000001f) return false;  // If the determinant is near zero, ray // plane
 
     // 2. Do the intersection test using Barycentric coordinates (u, v, w)
     // 2.1. Calculate U paramter and test bounds
     double inv_det = 1.0f / det;  // inverse determinant
     Vec3 tvec = ray.orig - v0;  // distance from vertex to ray origin
     u = dot(tvec, pvec) * inv_det;  // U paramter
-    
     if (u < 0.0f || u > 1.0f ) return false; 
+    
+    // cout << "u: " << u << endl;
 
     // 2.2. Calculate V paramter and test bounds
     Vec3 qvec = cross(tvec, e1);
     v = dot(ray.dir, qvec) * inv_det;  // V paramter
     
     if (v < 0.0f || u + v > 1.0f) return false;
+
+    // cout << "v: " << u << endl;
+
 
     // Ray intersects triangle
     // 3. Record intersection time
@@ -651,5 +671,7 @@ Vec3 getBarycentric(Vec3 &p, const Vec3& v0, const Vec3& v1, const Vec3& v2)
     
     return Vec3(u, v, w);
 }
+
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////////
