@@ -1,4 +1,4 @@
-# RayTracing
+# Adding Triangle Mesh Rendering to "Ray Tracing in One Weekend"
 <p> The original code in textbook "Ray Tracing in One Weekend" involves rendering scenes with only sphere objects. I extended this implementation to include rendering triangular meshes. Detailed explanations (Sorry, in Korean) can be found in my blog posts: <a href="https://jsoo615.tistory.com/5">Part 1</a> and <a href="https://jsoo615.tistory.com/6?category=1047331">Part 2</a>. </p>
 
 ![image](https://github.com/intsoo/RayTracing/assets/80330331/e26800a5-d1ae-4154-920d-9e0cc081375f)
